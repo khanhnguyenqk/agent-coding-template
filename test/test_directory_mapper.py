@@ -115,3 +115,42 @@ def test_directory_mapper_permission(monkeypatch, tmp_path):
     
     # Verify that the output for the protected directory indicates a permission error.
     assert "[Permission Denied]" in output
+
+def test_directory_mapper_hidden_files(tmp_path):
+    """
+    Test that hidden files (those starting with '.') are included only when show_hidden is True.
+    """
+    # Create a temporary directory
+    test_dir = tmp_path / "hidden_test"
+    test_dir.mkdir()
+
+    # Create a visible file and a hidden file.
+    visible_file = test_dir / "visible.txt"
+    visible_file.write_text("visible content")
+
+    hidden_file = test_dir / ".hidden.txt"
+    hidden_file.write_text("hidden content")
+
+    tool = DirectoryMapperTool()
+
+    # Test ASCII output without hidden files
+    ascii_without_hidden = tool._run(str(test_dir), output_format="ascii", show_hidden=False)
+    assert "visible.txt" in ascii_without_hidden
+    assert ".hidden.txt" not in ascii_without_hidden
+
+    # Test ASCII output including hidden files
+    ascii_with_hidden = tool._run(str(test_dir), output_format="ascii", show_hidden=True)
+    assert "visible.txt" in ascii_with_hidden
+    assert ".hidden.txt" in ascii_with_hidden
+
+    # Test JSON output without hidden files
+    json_without_hidden = json.loads(tool._run(str(test_dir), output_format="json", show_hidden=False))
+    children_names = [child["name"] for child in json_without_hidden.get("children", [])]
+    assert "visible.txt" in children_names
+    assert ".hidden.txt" not in children_names
+
+    # Test JSON output including hidden files
+    json_with_hidden = json.loads(tool._run(str(test_dir), output_format="json", show_hidden=True))
+    children_names = [child["name"] for child in json_with_hidden.get("children", [])]
+    assert "visible.txt" in children_names
+    assert ".hidden.txt" in children_names

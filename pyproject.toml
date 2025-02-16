@@ -15,15 +15,14 @@ dependencies = [
   "langchain-anthropic",
   "langgraph",
   "tavily-python",
-  "langgraph-checkpoint-sqlite"
+  "langgraph-checkpoint-sqlite",
+  "jinja2>=3.1.5"
 ]
 
 [project.optional-dependencies]
-jupyter = [
-    "notebook",
-    "ipykernel"
-]
 dev = [
+    "notebook",
+    "ipykernel",
     "pytest>=7.0.0",
     "pytest-asyncio"
 ]

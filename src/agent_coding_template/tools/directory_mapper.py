@@ -10,6 +10,9 @@ class DirectoryMapperToolArgs(BaseModel):
     output_format: Optional[str] = Field(
         "ascii", description="The format of the output. Options are 'ascii' or 'json'."
     )
+    show_hidden: bool = Field(
+        False, description="Whether to include hidden files and directories in the output."
+    )
 
 class DirectoryMapperTool(BaseTool):
     """
@@ -31,6 +34,7 @@ class DirectoryMapperTool(BaseTool):
         self, 
         directory: str, 
         output_format: str = "ascii", 
+        show_hidden: bool = False,
         run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
         """
@@ -39,7 +43,8 @@ class DirectoryMapperTool(BaseTool):
         Args:
             directory (str): The path of the directory to map.
             output_format (str): The output format, either "ascii" or "json".
-
+            show_hidden (bool): If True, include hidden files and directories (those starting with '.').
+            
         Returns:
             str: A string representation of the directory tree.
         """
@@ -47,32 +52,34 @@ class DirectoryMapperTool(BaseTool):
             return f"Error: The provided path '{directory}' is not a valid directory."
 
         if output_format.lower() == "json":
-            tree = self._build_json_tree(directory)
+            tree = self._build_json_tree(directory, show_hidden=show_hidden)
             return json.dumps(tree, indent=2)
         else:
-            lines = self._build_ascii_tree(directory)
+            lines = self._build_ascii_tree(directory, prefix="", show_hidden=show_hidden)
             return "\n".join(lines)
 
     async def _arun(
         self, 
         directory: str, 
         output_format: str = "ascii", 
+        show_hidden: bool = False,
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None
     ) -> str:
         """
         Asynchronous version not supported for this tool.
         """
         sync_manager = run_manager.get_sync() if run_manager else None
-        return self._run(directory, output_format=output_format, run_manager=sync_manager)
+        return self._run(directory, output_format=output_format, show_hidden=show_hidden, run_manager=sync_manager)
 
-    def _build_ascii_tree(self, path: str, prefix: str = "") -> List[str]:
+    def _build_ascii_tree(self, path: str, prefix: str = "", show_hidden: bool = False) -> List[str]:
         """
         Recursively build an ASCII representation of the directory tree.
 
         Args:
             path (str): The current directory or file path.
             prefix (str): The prefix for the current level (used for indentation).
-
+            show_hidden (bool): If True, include hidden files and directories.
+            
         Returns:
             List[str]: A list of strings representing each line of the ASCII tree.
         """
@@ -82,7 +89,8 @@ class DirectoryMapperTool(BaseTool):
         lines = [line]
         if os.path.isdir(path):
             try:
-                entries = sorted(os.listdir(path))
+                # Only include entries if show_hidden is True or entry does not start with a dot.
+                entries = sorted([entry for entry in os.listdir(path) if show_hidden or not entry.startswith(".")])
             except PermissionError:
                 lines.append(prefix + "    [Permission Denied]")
                 return lines
@@ -95,26 +103,27 @@ class DirectoryMapperTool(BaseTool):
                     # Append directory entry and recursively build its subtree.
                     lines.append(prefix + connector + entry + "/")
                     # Recursively build the subtree and skip the first line (redundant directory name)
-                    sub_lines = self._build_ascii_tree(full_path, new_prefix)
+                    sub_lines = self._build_ascii_tree(full_path, new_prefix, show_hidden)
                     lines.extend(sub_lines[1:])
                 else:
                     lines.append(prefix + connector + entry)
         return lines
 
-    def _build_json_tree(self, path: str) -> dict:
+    def _build_json_tree(self, path: str, show_hidden: bool = False) -> dict:
         """
         Recursively build a JSON representation of the directory tree.
 
         Args:
             path (str): The current directory or file path.
-
+            show_hidden (bool): If True, include hidden files and directories.
+            
         Returns:
             dict: A dictionary representing the node in the directory tree.
         """
         basename = os.path.basename(path.rstrip(os.sep)) or path
         if os.path.isdir(path):
             try:
-                entries = sorted(os.listdir(path))
+                entries = sorted([entry for entry in os.listdir(path) if show_hidden or not entry.startswith(".")])
             except PermissionError:
                 return {
                     "name": basename,
@@ -124,7 +133,7 @@ class DirectoryMapperTool(BaseTool):
             return {
                 "name": basename,
                 "type": "directory",
-                "children": [self._build_json_tree(os.path.join(path, entry)) for entry in entries]
+                "children": [self._build_json_tree(os.path.join(path, entry), show_hidden=show_hidden) for entry in entries]
             }
         else:
             return {
