@@ -154,3 +154,66 @@ def test_directory_mapper_hidden_files(tmp_path):
     children_names = [child["name"] for child in json_with_hidden.get("children", [])]
     assert "visible.txt" in children_names
     assert ".hidden.txt" in children_names
+
+# New tests for depth functionality
+
+def test_directory_mapper_depth_ascii(tmp_path):
+    """
+    Test the ASCII output when a maximum depth (depth) is provided.
+    """
+    # Create a nested directory structure:
+    # tmp_path/root/level1/level2/deep_file.txt
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    level1 = root_dir / "level1"
+    level1.mkdir()
+    level2 = level1 / "level2"
+    level2.mkdir()
+    deep_file = level2 / "deep_file.txt"
+    deep_file.write_text("Deep file content")
+    
+    tool = DirectoryMapperTool()
+    # When depth=1, only the root directory should be shown.
+    output_level1 = tool._run(str(root_dir), output_format="ascii", depth=1)
+    lines_level1 = output_level1.split("\n")
+    assert len(lines_level1) == 1
+    assert root_dir.name in lines_level1[0]
+    assert "level1" not in output_level1
+
+    # When depth=2, the root and its immediate child (level1) should be shown,
+    # but not deeper (level2 or deep_file.txt).
+    output_level2 = tool._run(str(root_dir), output_format="ascii", depth=2)
+    assert "level1/" in output_level2
+    assert "level2" not in output_level2
+    assert "deep_file.txt" not in output_level2
+
+def test_directory_mapper_depth_json(tmp_path):
+    """
+    Test the JSON output when a maximum depth (depth) is provided.
+    """
+    # Create a nested directory structure:
+    # tmp_path/root/level1/level2/file_in_level2.txt
+    root_dir = tmp_path / "root"
+    root_dir.mkdir()
+    level1 = root_dir / "level1"
+    level1.mkdir()
+    level2 = level1 / "level2"
+    level2.mkdir()
+    file_in_level2 = level2 / "file_in_level2.txt"
+    file_in_level2.write_text("File content")
+    
+    tool = DirectoryMapperTool()
+    # When depth=2, only the root and its immediate child "level1" should be expanded,
+    # and "level1" should have an empty children list.
+    output_json = tool._run(str(root_dir), output_format="json", depth=2)
+    parsed = json.loads(output_json)
+    
+    assert parsed["name"] == root_dir.name
+    assert "children" in parsed
+    # There should be one child called "level1"
+    children_names = [child["name"] for child in parsed["children"]]
+    assert "level1" in children_names
+    # Ensure that for "level1", children is an empty list (max depth reached)
+    for child in parsed["children"]:
+        if child["name"] == "level1":
+            assert child.get("children") == []

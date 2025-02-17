@@ -3,6 +3,6 @@
 from .directory_mapper import DirectoryMapperTool
 from .readme_reader import ReadmeReaderTool
 from .file_reader import FileReaderTool
-from .write_file import WriteFileTool
+from .file_editor import FileEditorTool
 
-__all__ = ["DirectoryMapperTool", "ReadmeReaderTool", "FileReaderTool", "WriteFileTool"]
+__all__ = ["DirectoryMapperTool", "ReadmeReaderTool", "FileReaderTool", "FileEditorTool"]
