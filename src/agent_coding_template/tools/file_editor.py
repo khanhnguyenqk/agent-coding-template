@@ -2,12 +2,15 @@ import os
 from typing import Optional, Type, ClassVar
 from langchain_core.tools import BaseTool
 from langchain.callbacks.manager import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class FileEditorToolArgs(BaseModel):
     file_path: str = Field(..., description="The path of the file to edit.")
     action: str = Field(..., description="The action to perform on the file: 'insert', 'update', or 'new'.")
-    content: str = Field(..., description="The content to insert/update in the file.")
+    content: Optional[str] = Field(
+        None, 
+        description="REQUIRED for insert/update actions. Content to add. For 'new', creates empty file if omitted."
+    )
     start_line: Optional[int] = Field(
         None,
         description=("For 'insert': the line number before which new content will be inserted. "
@@ -19,6 +22,14 @@ class FileEditorToolArgs(BaseModel):
         description="For 'update' action: the last line number (inclusive) to be replaced with the new content."
     )
 
+    @model_validator(mode='after')
+    def validate_content_requirements(self):
+        if self.action in ['insert', 'update'] and self.content is None:
+            raise ValueError("'content' is required for insert and update actions")
+        if self.action == 'update' and (self.start_line is None or self.end_line is None):
+            raise ValueError("Both start_line and end_line are required for update actions")
+        return self
+
 class FileEditorTool(BaseTool):
     """
     A tool to edit a file by performing one of three actions:
@@ -28,12 +39,18 @@ class FileEditorTool(BaseTool):
     """
     name: ClassVar[str] = "FileEditorTool"
     description: ClassVar[str] = (
-        "Edits a file based on the requested action. "
-        "Actions:\n"
-        " - new: Creates a new file with the provided content (fails if file exists).\n"
-        " - insert: Inserts content into an existing file at the specified (optional) start_line. "
-        "If start_line is not provided, content is appended to the file.\n"
-        " - update: Replaces lines between start_line and end_line in an existing file with the new content."
+        "Edits files using one of these strict action patterns:\n"
+        "1. new: Create NEW file with content (fails if exists). "
+        "Content optional (creates empty file)\n"
+        "2. insert: REQUIRES CONTENT. Insert into existing file. "
+        "start_line: insert before this line (omit to append)\n"
+        "3. update: REQUIRES CONTENT + start_line + end_line. "
+        "Replace specified line range in existing file."
+        "\nExamples:\n"
+        "- To create new file: action='new', file_path='foo.txt'\n"
+        "- To insert code: action='insert', file_path='foo.py', content='print(...)'\n"
+        "- To update lines 5-10: action='update', file_path='bar.py', "
+        "content='new code', start_line=5, end_line=10"
     )
     args_schema: Type[BaseModel] = FileEditorToolArgs
 
@@ -41,7 +58,7 @@ class FileEditorTool(BaseTool):
         self,
         file_path: str,
         action: str,
-        content: str,
+        content: Optional[str] = None,
         start_line: Optional[int] = None,
         end_line: Optional[int] = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
@@ -56,12 +73,18 @@ class FileEditorTool(BaseTool):
                 directory = os.path.dirname(file_path)
                 if directory and not os.path.exists(directory):
                     os.makedirs(directory, exist_ok=True)
+                # For new action, if content is None, create an empty file.
+                if content is None:
+                    content = ""
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
                 return f"Successfully created new file '{file_path}'."
             else:
                 if not os.path.isfile(file_path):
                     return f"Error: File '{file_path}' does not exist."
+                # For insert/update, content must not be None.
+                if content is None:
+                    return "Error: content is required for insert and update actions."
                 with open(file_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()
 
@@ -106,7 +129,7 @@ class FileEditorTool(BaseTool):
         self,
         file_path: str,
         action: str,
-        content: str,
+        content: Optional[str] = None,
         start_line: Optional[int] = None,
         end_line: Optional[int] = None,
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,

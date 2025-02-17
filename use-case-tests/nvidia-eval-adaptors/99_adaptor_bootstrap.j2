@@ -1,0 +1,51 @@
+# Task: Implement NVIDIA Evaluation Adaptor
+
+## Objective
+Create an adaptor that integrates the benchmark's core functionality with the `eval_core_utils` framework, enabling programmatic execution and evaluation.
+
+## Context
+- Repository Directory: {{ repo_dir }}
+- Instruction File: {{ adaptor_instruction_filepath }}
+
+## Required Actions
+
+1. Create Submodule Structure
+   - Name: `nvidia`
+   - Purpose: House all adaptor-related code
+
+2. Analyze Benchmark Entry Point
+   - Find how the benchmark is executed (usually a Python CLI script). The README.md file is a good place to start looking for entry point.
+   - Identify the main function/method that runs the benchmark
+
+3. Design Adaptor Interface
+   - Study `eval_core_utils` framework requirements
+   - Design interface that bridges benchmark logic with framework expectations
+   - Plan data model transformations
+
+4. Implementation Requirements
+   A. Core Integration
+      - Extract core benchmark logic from CLI implementation
+      - Create clean programmatic interface to this logic
+      - Implement data model transformations between benchmark and framework formats
+      
+   B. Adaptor Implementation
+      - Create adapter class(es) implementing required framework interfaces
+      - Transform framework inputs to benchmark format
+      - Execute benchmark logic directly
+      - Transform benchmark results to framework format
+      
+   C. Code Organization
+      - Keep all adaptor code within `nvidia` submodule
+      - Maintain clear separation between adaptation layer and core benchmark logic
+      - Use appropriate design patterns for clean integration
+
+## Key Guidelines
+1. NO Command-Line Invocation
+   - Do NOT shell out to CLI commands
+   - Do NOT use subprocess or similar approaches
+   - Access benchmark functionality directly at code level
+
+2. Clean Integration
+   - NO changes to existing benchmark code
+   - Use composition over inheritance where possible
+   - Maintain clear separation of concerns

@@ -88,4 +88,23 @@ def test_insert_appending_no_newline(tmp_path: Path):
     updated_content = file_path.read_text(encoding="utf-8")
     # Expected content should have a newline added between "Line1" and "Appended"
     expected = "Line1\nAppended"
-    assert updated_content == expected 
+    assert updated_content == expected
+
+def test_new_file_empty_content(tmp_path):
+    file_path = tmp_path / "emptyfile.txt"
+    tool = FileEditorTool()
+    # Pass content as None for new action.
+    result = tool._run(str(file_path), action="new", content=None)
+    assert "Successfully created new file" in result
+    # Verify that the file exists and is empty.
+    written = file_path.read_text(encoding="utf-8")
+    assert written == ""
+
+def test_insert_with_no_content_error(tmp_path):
+    # Create a file first.
+    file_path = tmp_path / "insertfile.txt"
+    file_path.write_text("Line1\nLine2\n", encoding="utf-8")
+    tool = FileEditorTool()
+    # Passing None for content on an insert should return an error.
+    result = tool._run(str(file_path), action="insert", content=None, start_line=2)
+    assert "Error: content is required" in result 
