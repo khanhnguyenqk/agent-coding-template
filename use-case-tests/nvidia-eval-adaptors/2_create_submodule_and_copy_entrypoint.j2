@@ -8,8 +8,10 @@ Find the entry point of the benchmark and copy it to the `nvidia` submodule.
 
 ## Required Actions
 
-1. Create Submodule
+1. Create Submodule Within `src` Directory
+   - Some projects may not have a `src` directory, in that case, check the project's structure.
    - Name: `nvidia`
+   - Add `__init__.py` file to the submodule
 
 2. Look For Benchmark Entry Point
    - Find how the benchmark is executed (usually a Python CLI script). The README.md file is a good place to start looking for entry point.

@@ -1,2 +1,44 @@
-Add pydantic dependency to the project
-Project directory: {{ repo_dir }} 
+# Task: Add Dependency to Project
+
+## Context
+- Repository: {{ repo_dir }}
+- Dependency: {{ dependency }}  # In the format: `package-name==version` or a valid path/URL reference.
+
+## Actions
+1. **Identify and modify relevant dependency files** (only modify existing ones):
+   - `pyproject.toml` (Poetry or Setuptools)
+   - `requirements.txt`
+
+2. **Add the dependency using format-specific syntax**:
+   - **pip** (`requirements.txt`):
+     ```plaintext
+     # Add the dependency directly as:
+     package-name==version  # For specific versions
+     package-name>=version  # For version ranges
+     -e ./path/to/local-pkg  # For local editable installs
+     git+https://github.com/username/repo.git@branch  # For remote repositories
+     ```
+   - **Poetry** (`pyproject.toml`):
+     ```toml
+     [tool.poetry.dependencies]
+     package-name = "version"
+     # For local development paths:
+     my-pkg = { path = "./local/path", develop = true }
+     ```
+   - **Setuptools** (`pyproject.toml`):
+     ```toml
+     [project]
+     dependencies = [
+         "package-name==version",
+         "package-name>=version",
+         "local-package @ file:///absolute/path/to/package"
+     ]
+     ```
+
+## Requirements
+- **Modify only existing files** (do not create new dependency files).
+- **Add the dependency to ALL identified dependency files** consistently.
+
+## Notes
+- Ensure the syntax aligns with the tool used in the project.
+- Validate that the dependency version and path formats are correct.

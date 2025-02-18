@@ -1,0 +1,22 @@
+# Task: Implement NVIDIA Evaluation Adaptor
+
+## Objective
+Modify the entry point to use the interface defined in `eval_core_utils`.
+
+## Context
+- Repository Directory: {{ repo_dir }}
+- Interface conversion instructions: {{ adaptor_instruction_filepath }}
+- Entry point file: nvidia_eval_adaptor.py
+
+## Required Actions
+
+1. Read Interface Conversion Instructions
+   - Study the interface conversion instructions
+
+2. Edit Entry Point
+   - Convert CLI logic to programmatic interface
+   - Implement data model transformations between exisiting benchmark and framework formats
+
+## Key Guidelines
+1. Clean Integration
+   - NO changes to existing benchmark code. Keep ALL changes within the `nvidia` submodule.
